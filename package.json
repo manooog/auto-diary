@@ -3,9 +3,13 @@
 	"displayName": "auto-diary",
 	"publisher": "ruanxihao",
 	"description": "",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"engines": {
 		"vscode": "^1.30.0"
+	},
+	"repository": {
+		"type" : "git",
+		"url" : "https://github.com/Xixi20160512/auto-diary"
 	},
 	"categories": [
 		"Other"
