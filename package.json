@@ -9,8 +9,8 @@
 		"vscode": "^1.30.0"
 	},
 	"repository": {
-		"type" : "git",
-		"url" : "https://github.com/Xixi20160512/auto-diary"
+		"type": "git",
+		"url": "https://github.com/Xixi20160512/auto-diary"
 	},
 	"categories": [
 		"Other"
@@ -43,6 +43,7 @@
 		"vscode": "^1.1.25"
 	},
 	"dependencies": {
+		"dayjs": "^1.8.13",
 		"shelljs": "^0.8.3"
 	}
 }

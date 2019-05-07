@@ -4,6 +4,7 @@ import * as vscode from 'vscode';
 import { cmd } from './cmd';
 import { infoStatusBar } from './util';
 import { pullRebaseDiary, readConfig, checkDirAndInit } from './main';
+var dayjs = require('dayjs');
 
 export interface ExtStatus {
 	synced: boolean;
@@ -42,8 +43,8 @@ export async function activate(context: vscode.ExtensionContext) {
 		
 		try {
 			await cmd(`git add .`);
-	
-			await cmd(`git commit -m 'commit by vsc-auto-diary-ext ${new Date().toLocaleString()}'`);
+
+			await cmd(`git commit -m commit_by_vsc-auto-diary-ext_${dayjs().format('YYYY/MM/DD_HH:mm')}`);
 			
 			if(!extStatus.synced) {
 				// init sync faild, avoid comflict, stop auto push!
