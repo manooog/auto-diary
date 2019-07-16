@@ -27,6 +27,7 @@ export let extStatus: ExtStatus = {
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export async function activate(context: vscode.ExtensionContext) {
+  infoStatusBar('activate!')
   extStatus.config = await readConfig()
 
   let disposable = vscode.commands.registerCommand(

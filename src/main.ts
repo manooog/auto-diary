@@ -3,7 +3,6 @@ import { infoStatusBar } from './util'
 import { readFile } from 'fs'
 import * as vscode from 'vscode'
 import { ExtConfig, extStatus } from './extension'
-var dayjs = require('dayjs')
 
 export async function pullRebaseDiary() {
   infoStatusBar('syncing!')
@@ -24,9 +23,10 @@ export async function checkDirAndInit() {
   try {
     await cmd('git status')
   } catch (error) {
-    cmd('git init')
+    await cmd('git init')
   }
-  if (await cmd(`git remote -v | grep \auto-diary`)) {
+  let a: string = await cmd('git remote -v')
+  if (a.match(/auto-diary/)) {
     await cmd(`git remote set-url auto-diary ${extStatus.config.remote}`)
   } else {
     await cmd(`git remote add auto-diary ${extStatus.config.remote}`)
@@ -43,12 +43,6 @@ export async function checkDirAndInit() {
       `git checkout ${extStatus.config.branch} && git reset auto-diary/${
         extStatus.config.branch
       }`
-    )
-    // 将本地文件提交一次
-    await cmd(
-      `git add . && git commit -m commit_by_vsc-auto-diary-ext_${dayjs().format(
-        'YYYY/MM/DD_HH:mm'
-      )}`
     )
   })
 }
