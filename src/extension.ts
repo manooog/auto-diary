@@ -3,7 +3,7 @@
 import * as vscode from 'vscode'
 import { cmd } from './cmd'
 import { infoStatusBar } from './util'
-import { pullRebaseDiary, readConfig, checkDirAndInit } from './main'
+import { pullRebaseDiary, readConfig } from './main'
 var dayjs = require('dayjs')
 
 export interface ExtStatus {
