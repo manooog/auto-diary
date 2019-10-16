@@ -5,6 +5,7 @@ import * as vscode from 'vscode'
 import { ExtConfig, extStatus } from './extension'
 
 export async function pullRebaseDiary() {
+  await checkDirAndInit()
   infoStatusBar('syncing!')
   try {
     await cmd(`git pull auto-diary --rebase`).then(() => {
@@ -25,26 +26,24 @@ export async function checkDirAndInit() {
   } catch (error) {
     await cmd('git init')
   }
-  let a: string = await cmd('git remote -v')
-  if (a.match(/auto-diary/)) {
-    await cmd(`git remote set-url auto-diary ${extStatus.config.remote}`)
+  const remote: string = await cmd(`git remote -v`)
+  const isSameRemote = !remote
+    ? false
+    : (remote.match(/[^\s]+?\.git/) as Array<String>)[0] ===
+      extStatus.config.remote
+
+  if (isSameRemote) {
+    await cmd(`git checkout ${extStatus.config.branch}`)
   } else {
-    await cmd(`git remote add auto-diary ${extStatus.config.remote}`)
-  }
-  //set track
-  // watch out !! will reset workdir!!
-  await cmd(
-    `git fetch auto-diary && git checkout auto-diary/${
-      extStatus.config.branch
-    } -b ${extStatus.config.branch} -f`
-  ).catch(async _ => {
-    // 分支存在则切换过去
     await cmd(
-      `git checkout ${extStatus.config.branch} && git reset auto-diary/${
-        extStatus.config.branch
+      `git remote ${remote ? 'set-url' : 'add'} auto-diary ${
+        extStatus.config.remote
       }`
     )
-  })
+    await cmd(
+      `git fetch auto-diary && git checkout auto-diary/${extStatus.config.branch} -b ${extStatus.config.branch} -f`
+    )
+  }
 }
 
 export function readConfig(): Promise<ExtConfig> {
@@ -53,7 +52,10 @@ export function readConfig(): Promise<ExtConfig> {
       if (err) {
         reject(err)
       } else {
-        resolve(JSON.parse(data.toString()))
+        resolve({
+          branch: 'master',
+          ...JSON.parse(data.toString()),
+        })
       }
     })
   })
