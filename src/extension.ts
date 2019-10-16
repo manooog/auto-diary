@@ -37,7 +37,6 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   )
 
-  await checkDirAndInit()
   extStatus.synced = await pullRebaseDiary()
 
   vscode.workspace.onDidSaveTextDocument(async e => {
