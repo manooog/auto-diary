@@ -24,8 +24,7 @@ export function cmd(
     }
     shelljs.exec(order, newOption.opt || {}, (code, stdout, stderr) => {
       if (code !== 0) {
-        //err
-        console.log('[cmd] error: ', stderr)
+        vscode.window.showErrorMessage(stderr)
         reject(stderr)
       } else {
         resolve(stdout)

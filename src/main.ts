@@ -1,62 +1,119 @@
-import { cmd } from './cmd'
-import { infoStatusBar } from './util'
+import { infoStatusBar, gitMethods } from './util'
 import { readFile } from 'fs'
 import * as vscode from 'vscode'
-import { ExtConfig, extStatus } from './extension'
+import { repoName } from './const'
 
-export async function pullRebaseDiary() {
-  await checkDirAndInit()
-  infoStatusBar('syncing!')
-  try {
-    await cmd(`git pull auto-diary --rebase`).then(() => {
-      infoStatusBar('sync success!')
+export interface ExtStatus {
+  synced: boolean
+  config: ExtConfig
+}
+
+export interface ExtConfig {
+  branch: string
+  remote: string
+}
+
+export let extStatus: ExtStatus = {
+  synced: false,
+  config: {
+    branch: '',
+    remote: '',
+  },
+}
+
+enum Status {
+  'init' = '初始化',
+  'syncing' = '同步中',
+  'synced' = '已同步',
+  'faild' = '同步失败',
+}
+
+const showError = (str: string) =>
+  vscode.window.showErrorMessage('[auto-diary]:', str)
+
+class AutoDiary {
+  config: ExtConfig | undefined
+  status: Status = Status.init
+
+  async init(): Promise<any> {
+    const configResult = await this.readConfig()
+    if (typeof configResult === 'string') {
+      throw new Error(configResult)
+    }
+    this.config = configResult
+
+    this.matchBranch()
+  }
+
+  /**
+   * 从文件中获取配置
+   *
+   * @private
+   * @returns {(Promise<ExtConfig | string>)}
+   * @memberof AutoDiary
+   */
+  private readConfig(): Promise<ExtConfig | string> {
+    return new Promise((resolve, reject) => {
+      readFile(`${vscode.workspace.rootPath}/.auto-diary.json`, (err, data) => {
+        if (err) {
+          resolve('read config faild, please check!')
+        } else {
+          // TODO: Check config content
+          // Before this done, let's treat config options as full
+          resolve({
+            branch: 'master',
+            ...JSON.parse(data.toString()),
+          })
+        }
+      })
     })
-    return true
-  } catch (error) {
-    infoStatusBar('sync faild!')
-    return false
   }
-}
 
-export async function checkDirAndInit() {
-  //TODO: 增加远程服务的指纹
-  //ssh-keyscan code.aliyun.com >> ~/.ssh/known_hosts
-  try {
-    await cmd('git status')
-  } catch (error) {
-    await cmd('git init')
-  }
-  const remote: string = await cmd(`git remote -v`)
-  const isSameRemote = !remote
-    ? false
-    : (remote.match(/[^\s]+?\.git/) as Array<String>)[0] ===
-      extStatus.config.remote
-
-  if (isSameRemote) {
-    await cmd(`git checkout ${extStatus.config.branch}`)
-  } else {
-    await cmd(
-      `git remote ${remote ? 'set-url' : 'add'} auto-diary ${
-        extStatus.config.remote
-      }`
-    )
-    await cmd(
-      `git fetch auto-diary && git checkout auto-diary/${extStatus.config.branch} -b ${extStatus.config.branch} -f`
-    )
-  }
-}
-
-export function readConfig(): Promise<ExtConfig> {
-  return new Promise((resolve, reject) => {
-    readFile(`${vscode.workspace.rootPath}/.auto-diary.json`, (err, data) => {
-      if (err) {
-        reject(err)
-      } else {
-        resolve({
-          branch: 'master',
-          ...JSON.parse(data.toString()),
-        })
+  private async matchBranch() {
+    if (!this.config) return
+    const remote = await gitMethods.getRemote()
+    if (!remote) {
+      gitMethods.initRepo(this.config)
+    } else {
+      // 是有项目的
+      const curUri = remote[repoName]
+      // 没有这个uri
+      if (!curUri) {
+        // 增加一个remote
+        gitMethods.addRemote(this.config.remote)
+      } else if (curUri !== this.config.remote) {
+        // 更改远端地址
+        gitMethods.setRemoteUri(this.config)
       }
-    })
-  })
+    }
+  }
+
+  async commitAndPush() {
+    if (!this.config) return
+    if (this.status === Status.syncing) return
+    if (this.status !== Status.synced) {
+      await this.syncFile()
+    }
+    infoStatusBar('提交中')
+    const result = await gitMethods.commitAndPush(this.config)
+    if (!result) {
+      infoStatusBar('提交失败，请手动检查')
+      return
+    }
+    infoStatusBar('已提交')
+  }
+
+  async syncFile() {
+    if (!this.config) return
+    this.status = Status.syncing
+    const result = await gitMethods.syncRemote(this.config.branch)
+    // TODO: 如果同步失败，怎么处理比较合适呢
+    if (result) {
+      this.status = Status.synced
+    } else {
+      this.status = Status.faild
+    }
+  }
 }
+
+export default new AutoDiary()
