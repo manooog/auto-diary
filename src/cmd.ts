@@ -5,32 +5,28 @@ export interface CMDOption {
   opt?: {
     silent: boolean
   }
-  isWorkspaceRoot?: boolean
+  execPath?: string
 }
 
-export function cmd(
-  order: string,
-  option: CMDOption = { isWorkspaceRoot: true }
-) {
-  let newOption: CMDOption = {
-    isWorkspaceRoot: true,
-    ...option,
+export function cmd (order: string, option?: CMDOption) {
+  const newOption: CMDOption = {
+    ...option
   }
   let _pwd: string
   return new Promise<string>((resolve, reject) => {
-    if (newOption.isWorkspaceRoot) {
+    if (newOption.execPath) {
       _pwd = shelljs.pwd()
-      shelljs.cd(vscode.workspace.rootPath)
+      shelljs.cd(newOption.execPath)
     }
     shelljs.exec(order, newOption.opt || {}, (code, stdout, stderr) => {
       if (code !== 0) {
-        vscode.window.showErrorMessage(stderr)
+        if (!newOption.opt?.silent) vscode.window.showErrorMessage(stderr)
         reject(stderr)
       } else {
         resolve(stdout)
       }
 
-      shelljs.cd(_pwd)
+      if (_pwd) shelljs.cd(_pwd)
     })
   })
 }

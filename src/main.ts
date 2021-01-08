@@ -1,101 +1,114 @@
-import { infoStatusBar, gitMethods } from './util'
+import { infoStatusBar } from './util'
 import { readFile } from 'fs'
 import * as vscode from 'vscode'
 import { repoName } from './const'
-
-export interface ExtStatus {
-  synced: boolean
-  config: ExtConfig
-}
+import { GitMethods } from './lib/gitMethod'
 
 export interface ExtConfig {
   branch: string
   remote: string
 }
 
-export let extStatus: ExtStatus = {
+export interface ExtStatus {
+  synced: boolean
+  config: ExtConfig
+}
+
+export const extStatus: ExtStatus = {
   synced: false,
   config: {
     branch: '',
-    remote: '',
-  },
+    remote: ''
+  }
 }
 
-enum Status {
-  'init' = '初始化',
-  'syncing' = '同步中',
-  'synced' = '已同步',
-  'faild' = '同步失败',
-}
+export type workspaceWithConfig = vscode.WorkspaceFolder & { config: ExtConfig, gitMethods: GitMethods }
 
-const showError = (str: string) =>
-  vscode.window.showErrorMessage('[auto-diary]:', str)
+const Status = {
+  init: '初始化',
+  syncing: '同步中',
+  synced: '已同步',
+  faild: '同步失败'
+}
 
 class AutoDiary {
-  config: ExtConfig | undefined
-  status: Status = Status.init
+  status: string = Status.init
+  validateWorkspace: Array<workspaceWithConfig> = []
 
-  async init(): Promise<any> {
-    const configResult = await this.readConfig()
-    if (typeof configResult === 'string') {
-      throw new Error(configResult)
+  async init (): Promise<boolean> {
+    this.validateWorkspace = await this.getValidateWorkspace()
+
+    if (this.validateWorkspace.length === 0) {
+      infoStatusBar('没有找到配置文件 auto-diary.json')
+      return false
     }
-    this.config = configResult
 
-    this.matchBranch()
-  }
-
-  /**
-   * 从文件中获取配置
-   *
-   * @private
-   * @returns {(Promise<ExtConfig | string>)}
-   * @memberof AutoDiary
-   */
-  private readConfig(): Promise<ExtConfig | string> {
-    return new Promise((resolve, reject) => {
-      readFile(`${vscode.workspace.rootPath}/.auto-diary.json`, (err, data) => {
-        if (err) {
-          resolve('read config faild, please check!')
-        } else {
-          // TODO: Check config content
-          // Before this done, let's treat config options as full
-          resolve({
-            branch: 'master',
-            ...JSON.parse(data.toString()),
-          })
-        }
-      })
+    this.validateWorkspace.forEach((workspace) => {
+      this.matchBranch(workspace)
     })
+
+    return true
   }
 
-  private async matchBranch() {
-    if (!this.config) return
+  async getValidateWorkspace (): Promise<Array<workspaceWithConfig>> {
+    const folders = vscode.workspace.workspaceFolders || []
+    return await Promise.all<any>(
+      folders.map((folder) => {
+        const {
+          uri: { path }
+        } = folder
+        return new Promise((resolve) => {
+          readFile(`${path}/auto-diary.json`, (err, data) => {
+            // TODO: Check config content
+            resolve(
+              err
+                ? false
+                : {
+                    ...folder,
+                    config: {
+                      branch: 'master',
+                      ...JSON.parse(data.toString())
+                    },
+                    gitMethods: new GitMethods(folder.uri.path)
+                  }
+            )
+          })
+        })
+      })
+    ).then((res) => res.filter(Boolean))
+  }
+
+  private async matchBranch (ws: workspaceWithConfig) {
+    const { config, gitMethods } = ws
     const remote = await gitMethods.getRemote()
     if (!remote) {
-      gitMethods.initRepo(this.config)
+      gitMethods.initRepo(ws)
     } else {
       // 是有项目的
       const curUri = remote[repoName]
       // 没有这个uri
       if (!curUri) {
         // 增加一个remote
-        gitMethods.addRemote(this.config.remote)
-      } else if (curUri !== this.config.remote) {
+        gitMethods.addRemote(config.remote)
+      } else if (curUri !== config.remote) {
         // 更改远端地址
-        gitMethods.setRemoteUri(this.config)
+        gitMethods.setRemoteUri(config)
       }
     }
   }
 
-  async commitAndPush() {
-    if (!this.config) return
+  async commitAndPush (path: string) {
+    const workspace = this.validateWorkspace.find(({ uri: { path: myPath } }) =>
+      myPath === path
+    )
+    if (!workspace) return
     if (this.status === Status.syncing) return
     if (this.status !== Status.synced) {
-      await this.syncFile()
+      await this.syncWorkspace(workspace)
     }
     infoStatusBar('提交中')
-    const result = await gitMethods.commitAndPush(this.config)
+    const { gitMethods, config } = workspace
+    const result = await gitMethods.commitAndPush(config)
     if (!result) {
       infoStatusBar('提交失败，请手动检查')
       return
@@ -103,17 +116,20 @@ class AutoDiary {
     infoStatusBar('已提交')
   }
 
-  async syncFile() {
-    if (!this.config) return
-    this.status = Status.syncing
-    const result = await gitMethods.syncRemote(this.config.branch)
-    // TODO: 如果同步失败，怎么处理比较合适呢
-    if (result) {
-      this.status = Status.synced
-    } else {
-      this.status = Status.faild
-    }
-  }
+   syncWorkspace: (workspace: workspaceWithConfig) => void = async ({ config, gitMethods }) => {
+     const result = await gitMethods.syncRemote(config.branch)
+     if (result) {
+       this.status = Status.synced
+     } else {
+       this.status = Status.faild
+     }
+   }
+
+   async syncFile () {
+     this.status = Status.syncing
+
+     this.validateWorkspace.forEach(this.syncWorkspace)
+   }
 }
 
 export default new AutoDiary()

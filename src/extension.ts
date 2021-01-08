@@ -2,22 +2,22 @@ import * as vscode from 'vscode'
 import { infoStatusBar } from './util'
 import autoDiary from './main'
 
-export async function activate(context: vscode.ExtensionContext) {
-  infoStatusBar('activate!')
+export async function activate (context: vscode.ExtensionContext) {
+  infoStatusBar('activate!', true)
 
-  await autoDiary.init()
+  const result = await autoDiary.init()
 
-  let disposable = vscode.commands.registerCommand(
-    'extension.syncRemote',
-    () => {
-      autoDiary.syncFile()
-    }
-  )
+  if (!result) return
 
-  autoDiary.syncFile()
+  const disposable = vscode.commands.registerCommand('extension.syncRemote', () => {
+    autoDiary.syncFile()
+  })
 
-  vscode.workspace.onDidSaveTextDocument(e => autoDiary.commitAndPush())
+  vscode.workspace.onDidSaveTextDocument((e) => {
+    const path = e.uri.path.split('/').slice(0, -1).join('/')
+    autoDiary.commitAndPush(path)
+  })
 
   context.subscriptions.push(disposable)
 }
-export function deactivate() {}
+export function deactivate () {}

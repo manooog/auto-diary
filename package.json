@@ -1,49 +1,54 @@
 {
-	"name": "auto-diary",
-	"displayName": "auto-diary",
-	"publisher": "ruanxihao",
-	"description": "",
-	"icon": "img/logo.png",
-	"version": "0.1.0",
-	"engines": {
-		"vscode": "^1.30.0"
-	},
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/Xixi20160512/auto-diary"
-	},
-	"categories": [
-		"Other"
-	],
-	"activationEvents": [
-		"workspaceContains:**/.auto-diary.json"
-	],
-	"main": "./out/extension.js",
-	"contributes": {
-		"commands": [
-			{
-				"command": "extension.syncRemote",
-				"title": "auto diary: sync"
-			}
-		]
-	},
-	"scripts": {
-		"vscode:prepublish": "yarn run compile",
-		"compile": "tsc -p ./",
-		"watch": "tsc -watch -p ./",
-		"postinstall": "node ./node_modules/vscode/bin/install",
-		"test": "yarn run compile && node ./node_modules/vscode/bin/test"
-	},
-	"devDependencies": {
-		"@types/mocha": "^2.2.42",
-		"@types/node": "^8.10.25",
-		"@types/shelljs": "^0.8.1",
-		"tslint": "^5.8.0",
-		"typescript": "^3.1.4",
-		"vscode": "^1.1.25"
-	},
-	"dependencies": {
-		"dayjs": "^1.8.13",
-		"shelljs": "^0.8.3"
-	}
+  "name": "auto-diary",
+  "displayName": "auto-diary",
+  "publisher": "ruanxihao",
+  "description": "",
+  "icon": "img/logo.png",
+  "version": "0.1.0",
+  "engines": {
+    "vscode": "^1.30.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Xixi20160512/auto-diary"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "workspaceContains:auto-diary.json"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "extension.syncRemote",
+        "title": "auto diary: sync"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/mocha": "^2.2.42",
+    "@types/node": "^8.10.25",
+    "@types/shelljs": "^0.8.1",
+    "@types/vscode": "^1.52.0",
+    "@typescript-eslint/eslint-plugin": "^4.12.0",
+    "@typescript-eslint/parser": "^4.12.0",
+    "eslint": "^7.17.0",
+    "eslint-config-standard": "^16.0.2",
+    "eslint-plugin-import": "^2.22.1",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-promise": "^4.2.1",
+    "typescript": "^3.1.4",
+    "vscode-test": "^1.4.1"
+  },
+  "dependencies": {
+    "dayjs": "^1.8.13",
+    "shelljs": "^0.8.3"
+  }
 }
