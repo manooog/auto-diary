@@ -1,5 +1,5 @@
 import * as vscode from 'vscode'
-import { infoStatusBar } from './util'
+import { infoStatusBar } from './lib/util'
 import autoDiary from './main'
 
 export async function activate (context: vscode.ExtensionContext) {

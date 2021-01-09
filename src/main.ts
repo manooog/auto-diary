@@ -1,7 +1,7 @@
-import { infoStatusBar } from './util'
+import { infoStatusBar } from './lib/util'
 import { readFile } from 'fs'
 import * as vscode from 'vscode'
-import { repoName } from './const'
+import { repoName } from './constant'
 import { GitMethods } from './lib/gitMethod'
 
 export interface ExtConfig {
@@ -59,7 +59,6 @@ class AutoDiary {
         } = folder
         return new Promise((resolve) => {
           readFile(`${path}/auto-diary.json`, (err, data) => {
-            // TODO: Check config content
             resolve(
               err
                 ? false
